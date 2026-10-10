@@ -42,7 +42,13 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton asChild>
-              <Link href="/dashboard">
+              <Link
+                href="/dashboard"
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.location.href = "/dashboard";
+                }}
+              >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/logo.png" alt="ARTEX" width={40} height={40} className="shrink-0" />
                 <span className="font-semibold text-base">{APP_CONFIG.name}</span>

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 import { ChevronRight, MailIcon, PlusCircleIcon } from "lucide-react";
 import { api } from "@/lib/api";
@@ -186,8 +186,6 @@ function InterceptPendingBadge() {
 }
 
 function NavLinkItem({ item, isActive, showIconFallback }: NavLinkItemProps) {
-  const router = useRouter();
-
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild aria-disabled={item.disabled} tooltip={item.title} isActive={isActive}>
@@ -197,7 +195,8 @@ function NavLinkItem({ item, isActive, showIconFallback }: NavLinkItemProps) {
           rel={item.newTab ? "noreferrer" : undefined}
           onClick={(e) => {
             if (!item.newTab && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-              router.push(item.url);
+              e.preventDefault();
+              window.location.href = item.url;
             }
           }}
         >
@@ -226,7 +225,6 @@ function NavLinkIcon({ item, showFallback }: NavLinkIconProps) {
 
 function NavDropdownItem({ item, isActive, isSubItemActive }: NavDropdownItemProps) {
   const Icon = item.icon;
-  const router = useRouter();
 
   return (
     <SidebarMenuItem>
@@ -253,7 +251,8 @@ function NavDropdownItem({ item, isActive, isSubItemActive }: NavDropdownItemPro
                     className="flex items-center gap-2"
                     onClick={(e) => {
                       if (!subItem.newTab && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                        router.push(subItem.url);
+                        e.preventDefault();
+                        window.location.href = subItem.url;
                       }
                     }}
                   >
@@ -272,7 +271,6 @@ function NavDropdownItem({ item, isActive, isSubItemActive }: NavDropdownItemPro
 
 function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive }: NavCollapsibleItemProps) {
   const Icon = item.icon;
-  const router = useRouter();
 
   return (
     <Collapsible asChild defaultOpen={defaultOpen} className="group/collapsible">
@@ -304,7 +302,8 @@ function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive }: Na
                       rel={subItem.newTab ? "noreferrer" : undefined}
                       onClick={(e) => {
                         if (!subItem.newTab && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                          router.push(subItem.url);
+                          e.preventDefault();
+                          window.location.href = subItem.url;
                         }
                       }}
                     >
