@@ -65,6 +65,32 @@ class ConfigUpdateRequest(BaseModel):
     ghidra_home: Optional[str] = None
 
 
+# --- Health & Auth Endpoints (for ARTEX WebUI) ---
+@app.get("/api/health")
+async def health_check():
+    return {"ok": True, "service": "Incredible-Magic Reverse Workbench", "version": "2.2.0"}
+
+
+@app.get("/api/auth/status")
+async def auth_status():
+    return {"initialized": True}
+
+
+@app.post("/api/auth/login")
+async def auth_login():
+    return {"token": "mock-demo"}
+
+
+@app.post("/api/auth/init")
+async def auth_init():
+    return {"token": "mock-demo"}
+
+
+@app.post("/api/auth/change-password")
+async def auth_change_password():
+    return {"ok": True}
+
+
 # --- Task Endpoints ---
 @app.post("/api/tasks")
 async def create_new_task(
