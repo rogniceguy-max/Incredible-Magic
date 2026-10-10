@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Shield, Terminal, Cpu, CheckCircle2, XCircle, AlertTriangle, 
   Settings, Play, FileCode, Layers, Search, RefreshCw, Activity,
-  ChevronRight, Lock, Check, X, Code2, GitFork, ArrowRight
+  ChevronRight, Lock, Check, X, Code2, GitFork, ArrowRight,
+  FileText, Download, Copy
 } from 'lucide-react';
 
 interface Task {
@@ -50,6 +51,26 @@ export default function App() {
   const [llmBaseUrl, setLlmBaseUrl] = useState('https://api.deepseek.com/v1');
   const [llmKey, setLlmKey] = useState('');
   const [ghidraHome, setGhidraHome] = useState('');
+
+  // Report State
+  const [reportContent, setReportContent] = useState<string | null>(null);
+  const [reportLoading, setReportLoading] = useState(false);
+
+  const handleGenerateReport = async () => {
+    if (!selectedTask) return;
+    setReportLoading(true);
+    try {
+      const res = await fetch(`/api/tasks/${selectedTask.id}/report`);
+      if (res.ok) {
+        const data = await res.json();
+        setReportContent(data.markdown);
+      }
+    } catch (e) {
+      alert('报告生成失败: ' + e);
+    } finally {
+      setReportLoading(false);
+    }
+  };
 
   // Fetch initial data
   const fetchData = async () => {
@@ -406,14 +427,26 @@ export default function App() {
                   <Terminal className="w-4 h-4 text-blue-400" />
                   <span className="text-xs font-bold text-white truncate max-w-xs">{selectedTask?.title || '未选择任务'}</span>
                 </div>
-                {selectedTask && (
-                  <span className={`text-[10px] px-2 py-0.5 rounded font-mono ${
-                    selectedTask.status === 'pending_approval' ? 'bg-amber-950 text-amber-400 border border-amber-800 animate-pulse' :
-                    'bg-slate-800 text-slate-400'
-                  }`}>
-                    {selectedTask.status}
-                  </span>
-                )}
+                <div className="flex items-center gap-2">
+                  {selectedTask && (
+                    <>
+                      <button
+                        onClick={handleGenerateReport}
+                        disabled={reportLoading}
+                        className="px-2 py-0.5 rounded bg-blue-900/40 hover:bg-blue-800/60 border border-blue-700/60 text-blue-300 text-[10px] flex items-center gap-1 transition-colors"
+                      >
+                        <FileText className="w-3 h-3" />
+                        <span>{reportLoading ? '生成中...' : '生成审计报告'}</span>
+                      </button>
+                      <span className={`text-[10px] px-2 py-0.5 rounded font-mono ${
+                        selectedTask.status === 'pending_approval' ? 'bg-amber-950 text-amber-400 border border-amber-800 animate-pulse' :
+                        'bg-slate-800 text-slate-400'
+                      }`}>
+                        {selectedTask.status}
+                      </span>
+                    </>
+                  )}
+                </div>
               </div>
 
               {/* Event Logs Stream */}
@@ -726,6 +759,42 @@ export default function App() {
                 >
                   保存设置
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Report Modal */}
+        {reportContent && (
+          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <div className="bg-[#0f172a] border border-slate-700 rounded-xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+              <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/60">
+                <div className="flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-blue-400" />
+                  <span className="font-bold text-sm text-white">二进制逆向工程分析报告</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(reportContent);
+                      alert('报告 Markdown 已复制到剪贴板');
+                    }}
+                    className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs rounded flex items-center gap-1"
+                  >
+                    <Copy className="w-3.5 h-3.5" /> 复制 Markdown
+                  </button>
+                  <button
+                    onClick={() => setReportContent(null)}
+                    className="p-1 hover:bg-slate-800 rounded text-slate-400 hover:text-white"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div className="p-6 overflow-y-auto flex-1 font-sans text-xs text-slate-300 leading-relaxed space-y-4">
+                <pre className="whitespace-pre-wrap font-mono text-[11px] bg-slate-950 p-4 rounded-lg border border-slate-800/80 text-emerald-300/90 overflow-x-auto">
+                  {reportContent}
+                </pre>
               </div>
             </div>
           </div>

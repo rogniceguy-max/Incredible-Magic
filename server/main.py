@@ -141,6 +141,78 @@ async def stream_events(task_id: str):
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
+@app.get("/api/tasks/{task_id}/report")
+async def generate_task_report(task_id: str):
+    """Generate professional Markdown reverse engineering & audit report (ARTEX style)."""
+    task = await db.get_task(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    events = await db.get_task_events(task_id)
+
+    # Extract recon data
+    recon_event = next((e for e in events if e.get("event_type") == "tool_result" and e.get("content", {}).get("tool") == "static_recon"), None)
+    recon = recon_event.get("content", {}).get("result", {}) if recon_event else {}
+
+    # Extract pseudocode
+    decomp_event = next((e for e in events if e.get("event_type") == "tool_result" and e.get("content", {}).get("tool") == "decompile_function"), None)
+    pseudocode = decomp_event.get("content", {}).get("result", {}).get("pseudocode", "N/A") if decomp_event else "N/A"
+
+    # Extract thoughts
+    thoughts = [e.get("content", {}).get("message") for e in events if e.get("event_type") == "thought"]
+
+    # Approvals
+    approvals = await db.get_pending_approvals(task_id)
+
+    report_md = f"""# 二进制逆向工程与安全分析审计报告
+
+**报告生成时间**：{task.get('created_at')}  
+**任务 ID**：`{task_id}`  
+**目标文件**：`{task.get('target_binary')}`  
+**任务状态**：`{task.get('status')}`  
+
+---
+
+## 1. 二进制基础元数据与指纹
+* **文件格式**：{recon.get('format', '未知')}
+* **文件大小**：{recon.get('file_size', '未知')} 字节
+* **全文件香农熵**：{recon.get('overall_entropy', 0.0)} ({'疑似加壳/高混淆' if recon.get('is_probably_packed') else '无明显高熵壳特征'})
+* **MD5 哈希**：`{recon.get('hashes', {}).get('md5', 'N/A')}`
+* **SHA256 哈希**：`{recon.get('hashes', {}).get('sha256', 'N/A')}`
+
+---
+
+## 2. 异常特征与可疑 API 发现
+"""
+    anomalies = recon.get("details", {}).get("anomalies", [])
+    if anomalies:
+        for a in anomalies:
+            report_md += f"- ⚠️ **{a}**\n"
+    else:
+        report_md += "- 未发现已知的明显恶意 API 导入特征。\n"
+
+    report_md += f"""
+---
+
+## 3. 关键逻辑反编译与分析结论 (Ghidra AST)
+```c
+{pseudocode}
+```
+
+---
+
+## 4. AI 逆向推理与探索轨迹 (Audit Trail)
+"""
+    for idx, t in enumerate(thoughts, 1):
+        report_md += f"{idx}. {t}\n"
+
+    report_md += """
+---
+*本报告由 Incredible-Magic (IM-Workbench) 自动化逆向工作台生成，供防御性安全研究与合规审计使用。*
+"""
+    return {"task_id": task_id, "markdown": report_md}
+
+
+
 # --- Human-in-the-Loop Approvals ---
 @app.get("/api/approvals")
 async def list_approvals(task_id: Optional[str] = None):

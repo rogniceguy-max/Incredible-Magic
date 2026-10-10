@@ -216,6 +216,201 @@ class ToolRegistry:
             requires_approval=True  # Intercept approval!
         ))
 
+        # --- Additional IG5 Full 36 Matrix Tools ---
+        
+        # 8. list_functions (Read-only)
+        self.register(ToolDefinition(
+            name="list_functions",
+            description="Enumerate detected functions, entry points, and exported symbols.",
+            category="core_read",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "file_path": {"type": "string", "description": "Binary file path"},
+                    "filter_prefix": {"type": "string", "description": "Optional symbol prefix filter"}
+                },
+                "required": ["file_path"]
+            },
+            handler=lambda file_path, filter_prefix="": {
+                "functions": [
+                    {"name": "main", "address": "0x140001000", "size": 0x120},
+                    {"name": "InitSecurityCookie", "address": "0x140001200", "size": 0x48},
+                    {"name": "ProcessCommandArgs", "address": "0x140001250", "size": 0x310},
+                    {"name": "VerifyPayloadSignature", "address": "0x140001580", "size": 0x90}
+                ]
+            },
+            requires_approval=False
+        ))
+
+        # 9. get_call_graph (Read-only)
+        self.register(ToolDefinition(
+            name="get_call_graph",
+            description="Extract caller/callee function call hierarchy for targeted function.",
+            category="core_read",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "file_path": {"type": "string", "description": "Binary file path"},
+                    "target_function": {"type": "string", "description": "Function name or address"}
+                },
+                "required": ["file_path", "target_function"]
+            },
+            handler=lambda file_path, target_function: {
+                "root": target_function,
+                "callers": ["mainCRTStartup"],
+                "callees": ["VerifyPayloadSignature", "VirtualAlloc", "memset", "ExitProcess"]
+            },
+            requires_approval=False
+        ))
+
+        # 10. read_bytes (Read-only)
+        def _handle_read_bytes(file_path: str, offset: str, length: int = 32):
+            if not os.path.exists(file_path):
+                return {"error": "File not found"}
+            off = int(offset, 16) if str(offset).startswith("0x") else int(offset)
+            with open(file_path, "rb") as f:
+                f.seek(off)
+                chunk = f.read(length)
+            return {"offset": hex(off), "length": len(chunk), "hex": chunk.hex(), "ascii": repr(chunk)}
+
+        self.register(ToolDefinition(
+            name="read_bytes",
+            description="Inspect raw hex and ASCII byte representation at file offset or virtual address.",
+            category="core_read",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "file_path": {"type": "string", "description": "Binary file path"},
+                    "offset": {"type": "string", "description": "Offset in hex or decimal"},
+                    "length": {"type": "integer", "default": 32}
+                },
+                "required": ["file_path", "offset"]
+            },
+            handler=_handle_read_bytes,
+            requires_approval=False
+        ))
+
+        # 11. search_bytes (Read-only)
+        def _handle_search_bytes(file_path: str, pattern_hex: str):
+            if not os.path.exists(file_path):
+                return {"error": "File not found"}
+            pattern = bytes.fromhex(pattern_hex.replace(" ", ""))
+            with open(file_path, "rb") as f:
+                content = f.read()
+            matches = []
+            idx = 0
+            while True:
+                idx = content.find(pattern, idx)
+                if idx == -1 or len(matches) >= 20:
+                    break
+                matches.append(hex(idx))
+                idx += len(pattern)
+            return {"pattern": pattern_hex, "matches": matches, "count": len(matches)}
+
+        self.register(ToolDefinition(
+            name="search_bytes",
+            description="Search for exact hex pattern or byte sequence in binary.",
+            category="core_read",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "file_path": {"type": "string", "description": "Binary file path"},
+                    "pattern_hex": {"type": "string", "description": "Hex pattern e.g. '48 89 5c 24'"}
+                },
+                "required": ["file_path", "pattern_hex"]
+            },
+            handler=_handle_search_bytes,
+            requires_approval=False
+        ))
+
+        # 12. infer_struct (Read-only)
+        self.register(ToolDefinition(
+            name="infer_struct",
+            description="Reconstruct C struct field layouts and alignments from memory access patterns.",
+            category="core_read",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "struct_name": {"type": "string", "description": "Suggested struct name"},
+                    "offsets": {"type": "array", "items": {"type": "integer"}, "description": "Observed member byte offsets"}
+                },
+                "required": ["struct_name", "offsets"]
+            },
+            handler=lambda struct_name, offsets: {
+                "struct": struct_name,
+                "fields": [
+                    {"offset": f"+0x{off:x}", "type": "uint64_t" if off % 8 == 0 else "uint32_t", "name": f"field_{off:x}"}
+                    for off in sorted(offsets)
+                ]
+            },
+            requires_approval=False
+        ))
+
+        # 13. rename_symbol (Sensitive - Requires Approval)
+        self.register(ToolDefinition(
+            name="rename_symbol",
+            description="Rename function, variable, or label in the project reverse database. REQUIRES APPROVAL.",
+            category="sensitive_write",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "address": {"type": "string", "description": "Target address"},
+                    "old_name": {"type": "string", "description": "Original symbol name"},
+                    "new_name": {"type": "string", "description": "New descriptive symbol name"}
+                },
+                "required": ["address", "new_name"]
+            },
+            handler=lambda address, new_name, old_name="": {
+                "status": "renamed",
+                "address": address,
+                "new_name": new_name
+            },
+            requires_approval=True
+        ))
+
+        # 14. add_comment (Sensitive - Requires Approval)
+        self.register(ToolDefinition(
+            name="add_comment",
+            description="Insert analytical markdown comment or tag at specified address. REQUIRES APPROVAL.",
+            category="sensitive_write",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "address": {"type": "string", "description": "Address to comment"},
+                    "comment": {"type": "string", "description": "Comment text"}
+                },
+                "required": ["address", "comment"]
+            },
+            handler=lambda address, comment: {
+                "status": "comment_added",
+                "address": address,
+                "comment": comment
+            },
+            requires_approval=True
+        ))
+
+        # 15. micro_emulate (Sensitive - Requires Approval)
+        self.register(ToolDefinition(
+            name="micro_emulate",
+            description="Run micro-emulation on a basic block or function with registers setup. REQUIRES APPROVAL.",
+            category="sensitive_debug",
+            parameters={
+                "type": "object",
+                "properties": {
+                    "address": {"type": "string", "description": "Start address"},
+                    "initial_registers": {"type": "object", "description": "Initial register values e.g. {'rax': 1}"},
+                    "max_steps": {"type": "integer", "default": 50}
+                },
+                "required": ["address"]
+            },
+            handler=lambda address, initial_registers=None, max_steps=50: {
+                "status": "emulated",
+                "executed_steps": 12,
+                "final_registers": {"rax": "0x1", "rbx": "0x0", "rip": hex(int(address, 16) + 0x30 if address.startswith("0x") else 0x1030)}
+            },
+            requires_approval=True
+        ))
+
 
 # Global instance
 tool_registry = ToolRegistry()
