@@ -2157,13 +2157,13 @@ export function SessionsTab({ taskId }: { taskId: string }) {
               </div>
               <div className="grid gap-2">
                 <label htmlFor="cancel-reason" className="text-sm font-medium">
-                  删除原因（必填）
+                  删除原因（选填）
                 </label>
                 <Textarea
                   id="cancel-reason"
                   value={cancelReason}
                   onChange={(e) => setCancelReason(e.target.value)}
-                  placeholder="说明为什么删除这条意图，例如：方向判断错误 / 目标已失效 / 与其他意图重复…"
+                  placeholder="说明为什么删除这条意图（可直接点击删除，默认：用户手动终止）"
                   rows={3}
                   autoFocus
                 />
@@ -2173,8 +2173,8 @@ export function SessionsTab({ taskId }: { taskId: string }) {
               <AlertDialogCancel>返回</AlertDialogCancel>
               <AlertDialogAction
                 variant="destructive"
-                disabled={!cancelIntent || controllingIntent !== null || !cancelReason.trim()}
-                onClick={() => cancelIntent && void controlWorker(cancelIntent, "cancel", cancelReason, deleteMode)}
+                disabled={!cancelIntent || controllingIntent !== null}
+                onClick={() => cancelIntent && void controlWorker(cancelIntent, "cancel", cancelReason.trim() || "用户手动终止", deleteMode)}
               >
                 {controllingIntent ? <Loader2Icon className="animate-spin" /> : <Trash2Icon />}
                 {deleteMode === "hard" ? "彻底删除" : "确认删除"}

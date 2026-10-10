@@ -139,6 +139,29 @@ async def get_task_detail(task_id: str):
     return {"task": task, "events": events}
 
 
+@app.delete("/api/tasks/{task_id}")
+async def delete_single_task(task_id: str):
+    if task_id in active_agents:
+        active_agents.pop(task_id, None)
+    ok = await db.delete_task(task_id)
+    return {
+        "deleted": task_id,
+        "assets_deleted": 0,
+        "assets_detached": 0,
+        "traffic_deleted": 0,
+        "files_deleted": False,
+        "findings_deleted": 0,
+        "llm_records_deleted": 0,
+    }
+
+
+@app.delete("/api/tasks")
+async def delete_all_tasks():
+    active_agents.clear()
+    count = await db.delete_all_tasks()
+    return {"deleted_count": count, "ok": True}
+
+
 @app.get("/api/tasks/{task_id}/events")
 async def get_events(task_id: str):
     events = await db.get_task_events(task_id)

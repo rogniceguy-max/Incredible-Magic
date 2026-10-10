@@ -534,6 +534,8 @@ export default function TasksPage() {
         } else {
           toast.success(deleteSummary(result));
         }
+        setTasks((current) => current.filter((t) => t.id !== id));
+        lastRef.current = "";
         load();
       } catch (e) {
         toast.error("删除失败：" + (e as Error).message);
@@ -650,6 +652,7 @@ export default function TasksPage() {
           for (const id of deleted) next.delete(id);
           return next;
         });
+        setTasks((current) => current.filter((t) => !deleted.includes(t.id)));
         const details = deleteDetails(total);
         const summary = `已删除 ${deleted.length} 个任务` + (details.length > 0 ? `（${details.join("，")}）` : "");
         if (warnings.length > 0) {
@@ -665,6 +668,7 @@ export default function TasksPage() {
           .join("；");
         toast.error(`${failed.length} 个任务删除失败：${head}${failed.length > 3 ? " 等" : ""}`);
       }
+      lastRef.current = "";
       load();
     },
     [load],

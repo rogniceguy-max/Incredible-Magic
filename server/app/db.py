@@ -179,3 +179,24 @@ async def resolve_approval(approval_id: str, decision: str) -> Optional[Dict[str
                 res["parameters"] = json.loads(res["parameters"])
                 return res
             return None
+
+
+async def delete_task(task_id: str) -> bool:
+    await ensure_db()
+    async with aiosqlite.connect(config.db_path) as db:
+        await db.execute("DELETE FROM task_events WHERE task_id = ?", (task_id,))
+        await db.execute("DELETE FROM approvals WHERE task_id = ?", (task_id,))
+        res = await db.execute("DELETE FROM tasks WHERE id = ?", (task_id,))
+        await db.commit()
+        return res.rowcount > 0
+
+
+async def delete_all_tasks() -> int:
+    await ensure_db()
+    async with aiosqlite.connect(config.db_path) as db:
+        await db.execute("DELETE FROM task_events")
+        await db.execute("DELETE FROM approvals")
+        res = await db.execute("DELETE FROM tasks")
+        await db.commit()
+        return res.rowcount
+
