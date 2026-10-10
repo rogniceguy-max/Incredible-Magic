@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { ChevronRight, MailIcon, PlusCircleIcon } from "lucide-react";
 import { api } from "@/lib/api";
@@ -186,14 +186,20 @@ function InterceptPendingBadge() {
 }
 
 function NavLinkItem({ item, isActive, showIconFallback }: NavLinkItemProps) {
+  const router = useRouter();
+
   return (
     <SidebarMenuItem>
       <SidebarMenuButton asChild aria-disabled={item.disabled} tooltip={item.title} isActive={isActive}>
         <Link
-          prefetch={false}
           href={item.url}
           target={item.newTab ? "_blank" : undefined}
           rel={item.newTab ? "noreferrer" : undefined}
+          onClick={(e) => {
+            if (!item.newTab && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+              router.push(item.url);
+            }
+          }}
         >
           <NavLinkIcon item={item} showFallback={showIconFallback} />
           <span>{item.title}</span>
@@ -220,6 +226,7 @@ function NavLinkIcon({ item, showFallback }: NavLinkIconProps) {
 
 function NavDropdownItem({ item, isActive, isSubItemActive }: NavDropdownItemProps) {
   const Icon = item.icon;
+  const router = useRouter();
 
   return (
     <SidebarMenuItem>
@@ -239,12 +246,16 @@ function NavDropdownItem({ item, isActive, isSubItemActive }: NavDropdownItemPro
               return (
                 <DropdownMenuItem key={subItem.id} asChild disabled={subItem.disabled}>
                   <Link
-                    prefetch={false}
                     href={subItem.url}
                     target={subItem.newTab ? "_blank" : undefined}
                     rel={subItem.newTab ? "noreferrer" : undefined}
                     aria-current={isSubItemActive(subItem.url) ? "page" : undefined}
                     className="flex items-center gap-2"
+                    onClick={(e) => {
+                      if (!subItem.newTab && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                        router.push(subItem.url);
+                      }
+                    }}
                   >
                     {SubIcon && <SubIcon />}
                     <span>{subItem.title}</span>
@@ -261,6 +272,7 @@ function NavDropdownItem({ item, isActive, isSubItemActive }: NavDropdownItemPro
 
 function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive }: NavCollapsibleItemProps) {
   const Icon = item.icon;
+  const router = useRouter();
 
   return (
     <Collapsible asChild defaultOpen={defaultOpen} className="group/collapsible">
@@ -287,10 +299,14 @@ function NavCollapsibleItem({ item, isActive, defaultOpen, isSubItemActive }: Na
                     isActive={isSubItemActive(subItem.url)}
                   >
                     <Link
-                      prefetch={false}
                       href={subItem.url}
                       target={subItem.newTab ? "_blank" : undefined}
                       rel={subItem.newTab ? "noreferrer" : undefined}
+                      onClick={(e) => {
+                        if (!subItem.newTab && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                          router.push(subItem.url);
+                        }
+                      }}
                     >
                       {SubIcon && <SubIcon />}
                       <span>{subItem.title}</span>
