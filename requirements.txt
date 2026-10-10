@@ -1,0 +1,12 @@
+# Core Web & API
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.10.0
+httpx>=0.28.0
+aiosqlite>=0.20.0
+python-multipart>=0.0.12
+
+# Reverse Engineering Core
+pefile>=2023.2.7
+capstone>=5.0.0
+# keystone-engine & unicorn optional depending on platform build tools

@@ -1,0 +1,42 @@
+# Environments
+.venv/
+env/
+venv/
+ENV/
+
+# Node & Frontend
+node_modules/
+.next/
+out/
+build/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Logs & Data
+*.log
+data/
+*.db
+*.sqlite3
+
+# OS & Editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Local Config
+.env
+.env.local
+config.local.json
